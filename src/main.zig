@@ -131,7 +131,6 @@ fn toBytes(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
             if (niceware.passphrase_to_bytes(ally, args)) |bytes| {
                 try writer.print("{s}\n", .{fmt.fmtSliceHexLower(bytes)});
             } else |err| switch (err) {
-                // TODO(bms): better message here
                 error.WordNotFound => {
                     if (niceware.get_word_not_found()) |word| {
                         log.err("invalid word entered: {s}", .{word});
