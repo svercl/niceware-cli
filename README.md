@@ -4,9 +4,13 @@ A Zig port of [niceware](https://github.com/diracdeltas/niceware) with a CLI int
 
 See original project README for more information.
 
-## Building
+## Requirements
 
 - Zig 0.9.0 (tested with version `0.9.0-dev.1324+598db831f`)
+
+## Building
+
+`zig build -Drelease-safe`
 
 ## How to use
 
