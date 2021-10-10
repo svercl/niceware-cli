@@ -4,6 +4,8 @@ const math = std.math;
 const mem = std.mem;
 const os = std.os;
 const sort = std.sort;
+// NOTE(bms): this is named as such to avoid shadowing
+const words_import = @import("words.zig");
 
 pub const Error = error{
     // Expected even sized slice, got an odd one
@@ -14,22 +16,32 @@ pub const Error = error{
     SizeTooLarge,
     // Size is smaller than minimum allowed
     SizeTooSmall,
+    // Word is longer than any known word (in the words array)
+    WordTooLong,
 } || mem.Allocator.Error;
 
-// The most recent not found word from [passphrase_to_bytes].
+// most recent not found word from [passphraseToBytes].
 var word_not_found: ?[]const u8 = null;
-// entire words list
-const all_words = @import("words.zig").words;
+// most recent word that was too long from [passphraseToBytes]
+var word_too_long: ?[]const u8 = null;
+
+const all_words = words_import.words;
+const max_word_length = words_import.max_word_length;
 
 pub const min_password_size = 2;
 pub const max_password_size = 1024;
 
-// Returns the most recent not found word.
+/// Returns the most recent not found word.
 pub fn getWordNotFound() ?[]const u8 {
     return word_not_found;
 }
 
-// Converts a byte array into a passphrase.
+/// Returns the most recent word that was too long.
+pub fn getWordTooLong() ?[]const u8 {
+    return word_too_long;
+}
+
+/// Converts a byte array into a passphrase.
 pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 {
     if (bytes.len < min_password_size) {
         return error.SizeTooSmall;
@@ -56,11 +68,17 @@ pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 
     return res.toOwnedSlice();
 }
 
-// Converts a phrase back into the original byte array.
-pub fn passphraseToBytes(ally: *mem.Allocator, words: [][]const u8) ![]u8 {
-    var bytes = try ally.alloc(u8, words.len * 2);
+/// Converts a passphrase back into the original byte array.
+pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: [][]const u8) ![]u8 {
+    var bytes = try ally.alloc(u8, passphrase.len * 2);
 
-    for (words) |word, idx| {
+    for (passphrase) |word, idx| {
+        // checks if the word is longer than any known word
+        if (word.len > max_word_length) {
+            word_too_long = word;
+            return error.WordTooLong;
+        }
+
         const word_idx = sort.binarySearch(
             []const u8,
             word,
@@ -84,8 +102,10 @@ pub fn passphraseToBytes(ally: *mem.Allocator, words: [][]const u8) ![]u8 {
     return bytes;
 }
 
-// Generates a passphrase with the specified number of bytes.
+/// Generates a passphrase with the specified number of bytes.
+// NOTE(bms): u11 is used here because u10 only goes up to 1023, but we need 1024.
 pub fn generatePassphrase(ally: *mem.Allocator, size: u11) ![][]const u8 {
+    // fills an array of bytes using system random (normally, this is cryptographically secure)
     var random_bytes = try ally.alloc(u8, size);
     try os.getrandom(random_bytes);
     return bytesToPassphrase(ally, random_bytes);
@@ -116,7 +136,7 @@ fn Pair(comptime T: type) type {
     };
 }
 
-/// Constructs a pair of a single type.
+/// Constructs a [Pair].
 fn pair(comptime T: type, first: T, second: T) Pair(T) {
     return .{
         .first = first,
@@ -124,7 +144,7 @@ fn pair(comptime T: type, first: T, second: T) Pair(T) {
     };
 }
 
-/// An iterator over pairs.
+/// An iterator over pairs from a slice.
 fn PairIterator(comptime T: type) type {
     return struct {
         buf: []const T,

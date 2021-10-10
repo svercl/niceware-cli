@@ -1,3 +1,19 @@
+/// The longest word in the array.
+pub const max_word_length = computeMaxWordLength();
+
+fn computeMaxWordLength() usize {
+    const maxInt = @import("std").math.maxInt;
+    @setEvalBranchQuota(maxInt(u32));
+
+    var best: usize = 0;
+    for (words) |word| {
+        if (best < word.len) {
+            best = word.len;
+        }
+    }
+    return best;
+}
+
 pub const words = [_][]const u8{
     "a",
     "aah",
