@@ -47,7 +47,7 @@ const usage_generate =
     \\Usage: niceware generate [size]
     \\
     \\Arguments:
-    \\  [size]    Amount of bits to use (default: 8)
+    \\  [size]    Amount of bytes to use (default: 8)
     \\
     \\General Options:
     \\  -h, --help      Print this message
