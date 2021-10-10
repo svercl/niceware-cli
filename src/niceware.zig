@@ -16,14 +16,10 @@ pub const Error = error{
     SizeTooLarge,
     // Size is smaller than minimum allowed
     SizeTooSmall,
-    // Word is longer than any known word (in the words array)
-    WordTooLong,
 } || mem.Allocator.Error;
 
 // most recent not found word from [passphraseToBytes].
 var word_not_found: ?[]const u8 = null;
-// most recent word that was too long from [passphraseToBytes]
-var word_too_long: ?[]const u8 = null;
 
 const all_words = words_import.words;
 const max_word_length = words_import.max_word_length;
@@ -34,11 +30,6 @@ pub const max_password_size = 1024;
 /// Returns the most recent not found word.
 pub fn getWordNotFound() ?[]const u8 {
     return word_not_found;
-}
-
-/// Returns the most recent word that was too long.
-pub fn getWordTooLong() ?[]const u8 {
-    return word_too_long;
 }
 
 /// Converts a byte array into a passphrase.
@@ -75,8 +66,8 @@ pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: [][]const u8) ![]u8 {
     for (passphrase) |word, idx| {
         // checks if the word is longer than any known word
         if (word.len > max_word_length) {
-            word_too_long = word;
-            return error.WordTooLong;
+            word_not_found = word;
+            return error.WordNotFound;
         }
 
         const word_idx = sort.binarySearch(

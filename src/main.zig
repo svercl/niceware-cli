@@ -139,13 +139,6 @@ fn toBytes(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
                         log.err("invalid word entered", .{});
                     }
                 },
-                error.WordTooLong => {
-                    if (niceware.getWordTooLong()) |word| {
-                        log.err("invalid word entered: {s}", .{word});
-                    } else {
-                        log.err("invalid word entered", .{});
-                    }
-                },
                 else => log.err("{}", .{err}),
             }
         }
