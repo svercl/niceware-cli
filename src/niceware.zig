@@ -20,8 +20,6 @@ pub const Error = error{
 var word_not_found: ?[]const u8 = null;
 // entire words list
 const all_words = @import("words.zig").words;
-// random number generator
-const random = std.crypto.random;
 
 pub const min_password_size = 2;
 pub const max_password_size = 1024;
