@@ -129,11 +129,6 @@ fn toBytes(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
         if (isHelp(cmd)) {
             try writer.writeAll(usage_to_bytes);
         } else {
-            // trim spaces around each word
-            for (args) |*arg| {
-                arg.* = mem.trim(u8, arg.*, &ascii.spaces);
-            }
-
             if (niceware.passphraseToBytes(ally, args)) |bytes| {
                 try writer.print("{s}\n", .{fmt.fmtSliceHexLower(bytes)});
             } else |err| switch (err) {
