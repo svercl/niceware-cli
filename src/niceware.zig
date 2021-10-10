@@ -25,15 +25,19 @@ pub const min_password_size = 2;
 pub const max_password_size = 1024;
 
 // Returns the most recent not found word.
-pub fn get_word_not_found() ?[]const u8 {
+pub fn getWordNotFound() ?[]const u8 {
     return word_not_found;
 }
 
 // Converts a byte array into a passphrase.
-pub fn bytes_to_passphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 {
-    if (bytes.len < min_password_size) return error.SizeTooSmall;
-    if (bytes.len > max_password_size) return error.SizeTooLarge;
-    if (bytes.len % 2 != 0) return error.OddSize;
+pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 {
+    if (bytes.len < min_password_size) {
+        return error.SizeTooSmall;
+    } else if (bytes.len > max_password_size) {
+        return error.SizeTooLarge;
+    } else if (bytes.len % 2 != 0) {
+        return error.OddSize;
+    }
 
     var res = std.ArrayList([]const u8).init(ally);
     // edge-case on zero length slices
@@ -41,11 +45,10 @@ pub fn bytes_to_passphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u
         return res.toOwnedSlice();
     }
 
-    // iterate in pairs
-    for (bytes) |byte, idx| {
-        if (idx % 2 != 0) continue;
-        const next = @intCast(u16, bytes[idx + 1]);
-        const word_idx = @intCast(u16, byte) * 256 + next;
+    // this cannot error, because we already check if the size is even
+    var pairs_it = pairs(u8, bytes) catch unreachable;
+    while (pairs_it.next()) |p| {
+        const word_idx = @intCast(u16, p.first) * 256 + @intCast(u16, p.second);
         std.debug.assert(word_idx < all_words.len);
         try res.append(all_words[word_idx]);
     }
@@ -54,7 +57,7 @@ pub fn bytes_to_passphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u
 }
 
 // Converts a phrase back into the original byte array.
-pub fn passphrase_to_bytes(ally: *mem.Allocator, words: [][]const u8) ![]u8 {
+pub fn passphraseToBytes(ally: *mem.Allocator, words: [][]const u8) ![]u8 {
     var bytes = try ally.alloc(u8, words.len * 2);
 
     for (words) |word, idx| {
@@ -82,22 +85,74 @@ pub fn passphrase_to_bytes(ally: *mem.Allocator, words: [][]const u8) ![]u8 {
 }
 
 // Generates a passphrase with the specified number of bytes.
-pub fn generate_passphrase(ally: *mem.Allocator, size: u11) ![][]const u8 {
-    if (size < min_password_size) return error.SizeTooSmall;
-    if (size > max_password_size) return error.SizeTooLarge;
-    if (size % 2 != 0) return error.OddSize;
+pub fn generatePassphrase(ally: *mem.Allocator, size: u11) ![][]const u8 {
     var random_bytes = try ally.alloc(u8, size);
     try os.getrandom(random_bytes);
-    return bytes_to_passphrase(ally, random_bytes);
+    return bytesToPassphrase(ally, random_bytes);
 }
 
-test "correct_passphrase_length" {
+test "correct passphrase length" {
     const t = std.testing;
     var arena = std.heap.ArenaAllocator.init(t.allocator);
     defer arena.deinit();
     const ally = &arena.allocator;
 
-    try t.expectEqual((try generate_passphrase(ally, 2)).len, 1);
-    try t.expectEqual((try generate_passphrase(ally, 20)).len, 10);
-    try t.expectEqual((try generate_passphrase(ally, 512)).len, 256);
+    try t.expectEqual((try generatePassphrase(ally, 2)).len, 1);
+    try t.expectEqual((try generatePassphrase(ally, 20)).len, 10);
+    try t.expectEqual((try generatePassphrase(ally, 512)).len, 256);
+}
+
+/// Returns an iterator over a slice [buf] in pairs of two.
+fn pairs(comptime T: type, buf: []const T) !PairIterator(T) {
+    if (buf.len % 2 != 0) return error.OddSize;
+    return PairIterator(T).init(buf);
+}
+
+/// A pair of a single type.
+fn Pair(comptime T: type) type {
+    return struct {
+        first: T,
+        second: T,
+    };
+}
+
+/// Constructs a pair of a single type.
+fn pair(comptime T: type, first: T, second: T) Pair(T) {
+    return .{
+        .first = first,
+        .second = second,
+    };
+}
+
+/// An iterator over pairs.
+fn PairIterator(comptime T: type) type {
+    return struct {
+        buf: []const T,
+        index: usize,
+
+        const Self = @This();
+
+        pub fn init(buf: []const T) Self {
+            return .{
+                .buf = buf,
+                .index = 0,
+            };
+        }
+
+        /// Returns the next pair or null when at the end of the slice.
+        pub fn next(self: *Self) ?Pair(T) {
+            if (self.index >= self.buf.len or self.index + 1 >= self.buf.len) {
+                return null;
+            } else {
+                const next_index = self.index + 1;
+                const p = pair(
+                    T,
+                    self.buf[self.index],
+                    self.buf[next_index],
+                );
+                self.index += 1;
+                return p;
+            }
+        }
+    };
 }
