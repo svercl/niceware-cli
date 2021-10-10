@@ -30,7 +30,7 @@ Generates a random passphrase. You may specify an optional size when calling thi
 
 Converts the passphrase into its bytes representation.
 
-`niceware to-bytes detection element branchier serow paraboiling` results in `37a5431f1688c6ef9bc4`
+`niceware to-bytes stroganoff inharmonic allergic tangy` results in `d7976e08033bde4a`
 
 ## Credits
 
