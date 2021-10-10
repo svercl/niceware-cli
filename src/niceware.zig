@@ -164,7 +164,7 @@ fn PairIterator(comptime T: type) type {
                     self.buf[self.index],
                     self.buf[next_index],
                 );
-                self.index += 1;
+                self.index += 2;
                 return p;
             }
         }
