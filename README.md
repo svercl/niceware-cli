@@ -36,4 +36,4 @@ Converts the passphrase into its bytes representation.
 
 This wouldn't be possible without the [original](https://github.com/diracdeltas/niceware).
 
-Huge shoutout to healeycodes for the [Rust port](https://github.com/healeycodes/rust-niceware).
+Huge shoutout to healeycodes for the [Rust port](https://github.com/healeycodes/niceware).
