@@ -7,6 +7,9 @@ const sort = std.sort;
 // NOTE(bms): this is named as such to avoid shadowing
 const words_import = @import("words.zig");
 
+/// Alias for an array of strings.
+pub const Passphrase = [][]const u8;
+
 pub const Error = error{
     // Expected even sized slice, got an odd one
     OddSize,
@@ -33,7 +36,7 @@ pub fn getWordNotFound() ?[]const u8 {
 }
 
 /// Converts a byte array into a passphrase.
-pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 {
+pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) !Passphrase {
     if (bytes.len < min_password_size) {
         return error.SizeTooSmall;
     } else if (bytes.len > max_password_size) {
@@ -51,7 +54,7 @@ pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 
     // this cannot error, because we already check if the size is even
     var pairs_it = pairs(u8, bytes) catch unreachable;
     while (pairs_it.next()) |p| {
-        const word_idx = @intCast(u16, p.first) * 256 + @intCast(u16, p.second);
+        const word_idx = @intCast(usize, p.first) * 256 + @intCast(usize, p.second);
         std.debug.assert(word_idx < all_words.len);
         try res.append(all_words[word_idx]);
     }
@@ -60,7 +63,7 @@ pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 
 }
 
 /// Converts a passphrase back into the original byte array.
-pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: [][]const u8) ![]u8 {
+pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: Passphrase) ![]u8 {
     var bytes = try ally.alloc(u8, passphrase.len * 2);
 
     for (passphrase) |word, idx| {
@@ -95,7 +98,7 @@ pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: [][]const u8) ![]u8 {
 
 /// Generates a passphrase with the specified number of bytes.
 // NOTE(bms): u11 is used here because u10 only goes up to 1023, but we need 1024.
-pub fn generatePassphrase(ally: *mem.Allocator, size: u11) ![][]const u8 {
+pub fn generatePassphrase(ally: *mem.Allocator, size: u11) !Passphrase {
     // fills an array of bytes using system random (normally, this is cryptographically secure)
     var random_bytes = try ally.alloc(u8, size);
     try os.getrandom(random_bytes);
