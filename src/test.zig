@@ -56,34 +56,11 @@ test "bytes to passphrase expected" {
     );
     try testing.expectEqualSlices(
         []const u8,
-        &[_][]const u8{
-            "a",
-            "bioengineering",
-            "balloted",
-            "gobbledegook",
-            "creneled",
-            "written",
-            "depriving",
-            "zyzzyva",
-        },
-        try niceware.bytesToPassphrase(ally, &[_]u8{
-            0x00,
-            0x00,
-            0x11,
-            0xd4,
-            0x0c,
-            0x8c,
-            0x5a,
-            0xf7,
-            0x2e,
-            0x53,
-            0xfe,
-            0x3c,
-            0x36,
-            0xa9,
-            0xff,
-            0xff,
-        }),
+        &[_][]const u8{ "a", "bioengineering", "balloted", "gobbledegook", "creneled", "written", "depriving", "zyzzyva" },
+        try niceware.bytesToPassphrase(
+            ally,
+            &[_]u8{ 0x00, 0x00, 0x11, 0xd4, 0x0c, 0x8c, 0x5a, 0xf7, 0x2e, 0x53, 0xfe, 0x3c, 0x36, 0xa9, 0xff, 0xff },
+        ),
     );
 }
 
@@ -113,33 +90,10 @@ test "returns expected bytes" {
     );
     try testing.expectEqualSlices(
         u8,
-        &[_]u8{
-            0x00,
-            0x00,
-            0x11,
-            0xd4,
-            0x0c,
-            0x8c,
-            0x5a,
-            0xf7,
-            0x2e,
-            0x53,
-            0xfe,
-            0x3c,
-            0x36,
-            0xa9,
-            0xff,
-            0xff,
-        },
-        try niceware.passphraseToBytes(ally, &[_][]const u8{
-            "a",
-            "bioengineering",
-            "balloted",
-            "gobbledegook",
-            "creneled",
-            "written",
-            "depriving",
-            "zyzzyva",
-        }),
+        &[_]u8{ 0x00, 0x00, 0x11, 0xd4, 0x0c, 0x8c, 0x5a, 0xf7, 0x2e, 0x53, 0xfe, 0x3c, 0x36, 0xa9, 0xff, 0xff },
+        try niceware.passphraseToBytes(
+            ally,
+            &[_][]const u8{ "a", "bioengineering", "balloted", "gobbledegook", "creneled", "written", "depriving", "zyzzyva" },
+        ),
     );
 }
