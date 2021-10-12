@@ -46,15 +46,12 @@ pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) !Passphrase {
     }
 
     var res = std.ArrayList([]const u8).init(ally);
-    // edge-case on zero length slices
-    if (bytes.len == 0) {
-        return res.toOwnedSlice();
-    }
+    errdefer res.deinit();
 
-    // this cannot error, because we already check if the size is even
+    // this cannot error, because we already check if the size is even.
     var pairs_it = pairs(u8, bytes) catch unreachable;
     while (pairs_it.next()) |p| {
-        const word_idx = @intCast(usize, p.first) * 256 + @intCast(usize, p.second);
+        const word_idx = mem.readInt(u16, &p, .Big);
         std.debug.assert(word_idx < all_words.len);
         try res.append(all_words[word_idx]);
     }
@@ -64,9 +61,11 @@ pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) !Passphrase {
 
 /// Converts a passphrase back into the original byte array.
 pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: Passphrase) ![]u8 {
-    var bytes = try ally.alloc(u8, passphrase.len * 2);
+    var bytes = try std.ArrayList(u8).initCapacity(ally, passphrase.len * 2);
+    errdefer bytes.deinit();
+    var writer = bytes.writer();
 
-    for (passphrase) |word, idx| {
+    for (passphrase) |word| {
         // checks if the word is longer than any known word
         if (word.len > max_word_length) {
             word_not_found = word;
@@ -88,12 +87,10 @@ pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: Passphrase) ![]u8 {
             word_not_found = word;
             return error.WordNotFound;
         };
-
-        bytes[2 * idx + 0] = @intCast(u8, word_idx / 256);
-        bytes[2 * idx + 1] = @intCast(u8, word_idx % 256);
+        try writer.writeIntBig(u16, @intCast(u16, word_idx));
     }
 
-    return bytes;
+    return bytes.toOwnedSlice();
 }
 
 /// Generates a passphrase with the specified number of bytes.
@@ -122,22 +119,6 @@ fn pairs(comptime T: type, buf: []const T) !PairIterator(T) {
     return PairIterator(T).init(buf);
 }
 
-/// A pair of a single type.
-fn Pair(comptime T: type) type {
-    return struct {
-        first: T,
-        second: T,
-    };
-}
-
-/// Constructs a [Pair].
-fn pair(comptime T: type, first: T, second: T) Pair(T) {
-    return .{
-        .first = first,
-        .second = second,
-    };
-}
-
 /// An iterator over pairs from a slice.
 fn PairIterator(comptime T: type) type {
     return struct {
@@ -146,6 +127,7 @@ fn PairIterator(comptime T: type) type {
 
         const Self = @This();
 
+        /// Creates a new [PairIterator] from a [buf].
         pub fn init(buf: []const T) Self {
             return .{
                 .buf = buf,
@@ -153,17 +135,20 @@ fn PairIterator(comptime T: type) type {
             };
         }
 
+        /// Resets the iterator to the beginning.
+        pub fn reset(self: *Self) void {
+            self.index = 0;
+        }
+
         /// Returns the next pair or null when at the end of the slice.
-        pub fn next(self: *Self) ?Pair(T) {
+        pub fn next(self: *Self) ?[2]T {
             if (self.index >= self.buf.len or self.index + 1 >= self.buf.len) {
                 return null;
             } else {
-                const next_index = self.index + 1;
-                const p = pair(
-                    T,
-                    self.buf[self.index],
-                    self.buf[next_index],
-                );
+                const p = [_]T{
+                    self.buf[self.index + 0], // note(bms): adding zero for visual aid only
+                    self.buf[self.index + 1],
+                };
                 self.index += 2;
                 return p;
             }
