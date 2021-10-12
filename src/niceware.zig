@@ -95,6 +95,7 @@ pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: []const []const u8) !
 pub fn generatePassphrase(ally: *mem.Allocator, size: u11) ![][]const u8 {
     // fills an array of bytes using system random (normally, this is cryptographically secure)
     var random_bytes = try ally.alloc(u8, size);
+    errdefer ally.free(random_bytes);
     try os.getrandom(random_bytes);
     return bytesToPassphrase(ally, random_bytes);
 }
