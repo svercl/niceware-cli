@@ -12,6 +12,10 @@ See original project README for more information.
 
 `zig build -Drelease-safe`
 
+## Running the tests
+
+`zig build test`
+
 ## How to use
 
 To get an overview of all commands you can run `niceware --help`.
