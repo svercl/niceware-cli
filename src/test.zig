@@ -65,35 +65,31 @@ test "bytes to passphrase expected" {
 }
 
 test "errors when input is not in the wordlist" {
-    var arena = std.heap.ArenaAllocator.init(testing.allocator);
-    defer arena.deinit();
-    const ally = &arena.allocator;
+    var buf: [6]u8 = undefined;
     try testing.expectError(
         error.WordNotFound,
-        niceware.passphraseToBytes(ally, &[_][]const u8{ "You", "love", "ninetails" }),
+        niceware.passphraseToBytes(&buf, &[_][]const u8{ "You", "love", "ninetails" }),
     );
 }
 
 test "returns expected bytes" {
-    var arena = std.heap.ArenaAllocator.init(testing.allocator);
-    defer arena.deinit();
-    const ally = &arena.allocator;
-    try testing.expectEqualSlices(
-        u8,
-        &[_]u8{ 0x00, 0x00 },
-        try niceware.passphraseToBytes(ally, &[_][]const u8{"A"}),
-    );
-    try testing.expectEqualSlices(
-        u8,
-        &[_]u8{ 0xff, 0xff },
-        try niceware.passphraseToBytes(ally, &[_][]const u8{"zyzzyva"}),
-    );
-    try testing.expectEqualSlices(
-        u8,
-        &[_]u8{ 0x00, 0x00, 0x11, 0xd4, 0x0c, 0x8c, 0x5a, 0xf7, 0x2e, 0x53, 0xfe, 0x3c, 0x36, 0xa9, 0xff, 0xff },
-        try niceware.passphraseToBytes(
-            ally,
-            &[_][]const u8{ "a", "bioengineering", "balloted", "gobbledegook", "creneled", "written", "depriving", "zyzzyva" },
-        ),
-    );
+    {
+        var buf: [2]u8 = undefined;
+        try niceware.passphraseToBytes(&buf, &[_][]const u8{"A"});
+        try testing.expectEqualSlices(u8, &[_]u8{ 0x00, 0x00 }, &buf);
+    }
+    {
+        var buf: [2]u8 = undefined;
+        try niceware.passphraseToBytes(&buf, &[_][]const u8{"zyzzyva"});
+        try testing.expectEqualSlices(u8, &[_]u8{ 0xff, 0xff }, &buf);
+    }
+    {
+        var buf: [16]u8 = undefined;
+        try niceware.passphraseToBytes(&buf, &[_][]const u8{ "a", "bioengineering", "balloted", "gobbledegook", "creneled", "written", "depriving", "zyzzyva" });
+        try testing.expectEqualSlices(
+            u8,
+            &[_]u8{ 0x00, 0x00, 0x11, 0xd4, 0x0c, 0x8c, 0x5a, 0xf7, 0x2e, 0x53, 0xfe, 0x3c, 0x36, 0xa9, 0xff, 0xff },
+            &buf,
+        );
+    }
 }
