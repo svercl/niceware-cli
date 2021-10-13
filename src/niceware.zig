@@ -33,7 +33,7 @@ pub fn getWordNotFound() ?[]const u8 {
 }
 
 /// Converts a byte array into a passphrase.
-pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 {
+pub fn bytesToPassphraseAlloc(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 {
     if (bytes.len < min_password_size) {
         return error.SizeTooSmall;
     } else if (bytes.len > max_password_size) {
@@ -51,7 +51,8 @@ pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 
     while (pairs_it.next()) |p| {
         const word_idx = mem.readInt(u16, &p, .Big);
         std.debug.assert(word_idx < all_words.len);
-        try res.append(all_words[word_idx]);
+        // this is safe, because we allocate enough memory at the start.
+        res.appendAssumeCapacity(all_words[word_idx]);
     }
 
     return res.toOwnedSlice();
@@ -100,13 +101,12 @@ pub fn passphraseToBytesAlloc(ally: *mem.Allocator, passphrase: []const []const 
 }
 
 /// Generates a passphrase with the specified number of bytes.
-// NOTE(bms): u11 is used here because u10 only goes up to 1023, but we need 1024.
-pub fn generatePassphrase(ally: *mem.Allocator, size: u11) ![][]const u8 {
+pub fn generatePassphraseAlloc(ally: *mem.Allocator, size: u11) ![][]const u8 {
     // fills an array of bytes using system random (normally, this is cryptographically secure)
     var random_bytes = try ally.alloc(u8, size);
     errdefer ally.free(random_bytes);
     try os.getrandom(random_bytes);
-    return bytesToPassphrase(ally, random_bytes);
+    return bytesToPassphraseAlloc(ally, random_bytes);
 }
 
 /// Returns an iterator over a slice [buf] in pairs of two.

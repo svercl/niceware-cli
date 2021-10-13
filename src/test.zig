@@ -6,38 +6,38 @@ test "generates passphrases of the correct length" {
     var arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
     const ally = &arena.allocator;
-    try testing.expectEqual((try niceware.generatePassphrase(ally, 2)).len, 1);
-    try testing.expectEqual((try niceware.generatePassphrase(ally, 20)).len, 10);
-    try testing.expectEqual((try niceware.generatePassphrase(ally, 512)).len, 256);
+    try testing.expectEqual((try niceware.generatePassphraseAlloc(ally, 2)).len, 1);
+    try testing.expectEqual((try niceware.generatePassphraseAlloc(ally, 20)).len, 10);
+    try testing.expectEqual((try niceware.generatePassphraseAlloc(ally, 512)).len, 256);
 }
 
 test "errors when generating passphrase with an odd number of bytes" {
     var arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
     const ally = &arena.allocator;
-    try testing.expectError(error.OddSize, niceware.generatePassphrase(ally, 3));
-    try testing.expectError(error.OddSize, niceware.generatePassphrase(ally, 23));
+    try testing.expectError(error.OddSize, niceware.generatePassphraseAlloc(ally, 3));
+    try testing.expectError(error.OddSize, niceware.generatePassphraseAlloc(ally, 23));
 }
 
 test "errors when generating passphrases that are too large" {
     var arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
     const ally = &arena.allocator;
-    try testing.expectError(error.SizeTooLarge, niceware.generatePassphrase(ally, 1026));
+    try testing.expectError(error.SizeTooLarge, niceware.generatePassphraseAlloc(ally, 1026));
 }
 
 test "errors when generating passphrases that are too small" {
     var arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
     const ally = &arena.allocator;
-    try testing.expectError(error.SizeTooSmall, niceware.generatePassphrase(ally, 1));
+    try testing.expectError(error.SizeTooSmall, niceware.generatePassphraseAlloc(ally, 1));
 }
 
 test "errors when byte array has odd length" {
     var arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
     const ally = &arena.allocator;
-    try testing.expectError(error.OddSize, niceware.bytesToPassphrase(ally, &[_]u8{0} ** 3));
+    try testing.expectError(error.OddSize, niceware.bytesToPassphraseAlloc(ally, &[_]u8{0} ** 3));
 }
 
 test "bytes to passphrase expected" {
@@ -47,17 +47,17 @@ test "bytes to passphrase expected" {
     try testing.expectEqualSlices(
         []const u8,
         &[_][]const u8{"a"},
-        try niceware.bytesToPassphrase(ally, &[_]u8{0} ** 2),
+        try niceware.bytesToPassphraseAlloc(ally, &[_]u8{0} ** 2),
     );
     try testing.expectEqualSlices(
         []const u8,
         &[_][]const u8{"zyzzyva"},
-        try niceware.bytesToPassphrase(ally, &[_]u8{0xff} ** 2),
+        try niceware.bytesToPassphraseAlloc(ally, &[_]u8{0xff} ** 2),
     );
     try testing.expectEqualSlices(
         []const u8,
         &[_][]const u8{ "a", "bioengineering", "balloted", "gobbledegook", "creneled", "written", "depriving", "zyzzyva" },
-        try niceware.bytesToPassphrase(
+        try niceware.bytesToPassphraseAlloc(
             ally,
             &[_]u8{ 0x00, 0x00, 0x11, 0xd4, 0x0c, 0x8c, 0x5a, 0xf7, 0x2e, 0x53, 0xfe, 0x3c, 0x36, 0xa9, 0xff, 0xff },
         ),

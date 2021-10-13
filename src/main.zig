@@ -80,7 +80,7 @@ test "!isStringNumeric" {
 
 fn generate(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
     if (args.len == 0) {
-        const passphrase = try niceware.generatePassphrase(ally, 8);
+        const passphrase = try niceware.generatePassphraseAlloc(ally, 8);
         // first line is the bytes
         const bytes = try niceware.passphraseToBytesAlloc(ally, passphrase);
         try writer.print("{s}\n", .{fmt.fmtSliceHexLower(bytes)});
@@ -93,7 +93,7 @@ fn generate(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
             try writer.writeAll(usage_generate);
         } else if (isStringNumeric(cmd)) {
             if (fmt.parseUnsigned(u11, cmd, 0)) |size| {
-                if (niceware.generatePassphrase(ally, size)) |passphrase| {
+                if (niceware.generatePassphraseAlloc(ally, size)) |passphrase| {
                     // first line is the bytes
                     const bytes = try niceware.passphraseToBytesAlloc(ally, passphrase);
                     try writer.print("{s}\n", .{fmt.fmtSliceHexLower(bytes)});
@@ -161,7 +161,7 @@ fn fromBytes(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
             } else {
                 var buf = try ally.alloc(u8, size / 2);
                 if (fmt.hexToBytes(buf, cmd)) |bytes| {
-                    if (niceware.bytesToPassphrase(ally, bytes)) |passphrase| {
+                    if (niceware.bytesToPassphraseAlloc(ally, bytes)) |passphrase| {
                         const joined = try mem.join(ally, " ", passphrase);
                         try writer.print("{s}\n", .{joined});
                     } else |err| switch (err) {
