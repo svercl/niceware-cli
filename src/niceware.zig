@@ -42,7 +42,8 @@ pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 
         return error.OddSize;
     }
 
-    var res = std.ArrayList([]const u8).init(ally);
+    // division is safe, because it's always even
+    var res = try std.ArrayList([]const u8).initCapacity(ally, bytes.len / 2);
     errdefer res.deinit();
 
     // this cannot error, because we already check if the size is even.
