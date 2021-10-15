@@ -11,6 +11,13 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
+    const t = b.addTest("src/test.zig");
+    t.setTarget(target);
+    t.setBuildMode(mode);
+
+    const test_step = b.step("test", "Run the tests");
+    test_step.dependOn(&t.step);
+
     const exe = b.addExecutable("niceware", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
