@@ -4,8 +4,7 @@ const math = std.math;
 const mem = std.mem;
 const os = std.os;
 const sort = std.sort;
-// NOTE(bms): this is named as such to avoid shadowing
-const words_import = @import("words.zig");
+usingnamespace @import("wordlist.zig");
 
 pub const Error = error{
     // Expected even sized slice, got an odd one
@@ -20,9 +19,6 @@ pub const Error = error{
 
 // most recent not found word from [passphraseToBytes].
 var word_not_found: ?[]const u8 = null;
-
-const all_words = words_import.words;
-const max_word_length = words_import.max_word_length;
 
 pub const min_password_size = 2;
 pub const max_password_size = 1024;
@@ -50,9 +46,9 @@ pub fn bytesToPassphraseAlloc(ally: *mem.Allocator, bytes: []const u8) ![][]cons
     var pairs_it = pairs(u8, bytes) catch unreachable;
     while (pairs_it.next()) |p| {
         const word_idx = mem.readInt(u16, &p, .Big);
-        std.debug.assert(word_idx < all_words.len);
+        std.debug.assert(word_idx < @This().wordlist.len);
         // this is safe, because we allocate enough memory at the start.
-        res.appendAssumeCapacity(all_words[word_idx]);
+        res.appendAssumeCapacity(@This().wordlist[word_idx]);
     }
 
     return res.toOwnedSlice();
@@ -67,7 +63,7 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
     var writer = std.io.fixedBufferStream(out).writer();
     for (passphrase) |word| {
         // checks if the word is longer than any known word
-        if (word.len > max_word_length) {
+        if (word.len > @This().max_word_length) {
             word_not_found = word;
             return error.WordNotFound;
         }
@@ -75,7 +71,7 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
         const word_idx = sort.binarySearch(
             []const u8,
             word,
-            &all_words,
+            &@This().wordlist,
             {},
             struct {
                 fn compare(context: void, a: []const u8, b: []const u8) math.Order {
