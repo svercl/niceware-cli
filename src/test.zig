@@ -2,13 +2,35 @@ const std = @import("std");
 const testing = std.testing;
 const niceware = @import("niceware.zig");
 
+test "bytes to passphrase does not allocate internally" {
+    const bytes = &[_]u8{ 0x00, 0x00 };
+    const size = niceware.passphraseSize(bytes) catch unreachable;
+    var buf = try testing.allocator.alloc(u8, size);
+    defer testing.allocator.free(buf);
+    try niceware.bytesToPassphrase(buf, bytes);
+    try testing.expectEqualStrings(buf, "a");
+}
+
+test "passphrase to bytes does not allocate internally" {
+    const passphrase = &[_][]const u8{"zyzzyva"};
+    const size = niceware.bytesSize(passphrase);
+    var buf = try testing.allocator.alloc(u8, size);
+    defer testing.allocator.free(buf);
+    try niceware.passphraseToBytes(buf, passphrase);
+    try testing.expectEqualSlices(
+        u8,
+        &[_]u8{ 0xff, 0xff },
+        buf,
+    );
+}
+
 test "generates passphrases of the correct length" {
     var arena = std.heap.ArenaAllocator.init(testing.allocator);
     defer arena.deinit();
     const ally = &arena.allocator;
-    try testing.expectEqual((try niceware.generatePassphraseAlloc(ally, 2)).len, 1);
-    try testing.expectEqual((try niceware.generatePassphraseAlloc(ally, 20)).len, 10);
-    try testing.expectEqual((try niceware.generatePassphraseAlloc(ally, 512)).len, 256);
+    try testing.expectEqual(@as(usize, 1), (try niceware.generatePassphraseAlloc(ally, 2)).len);
+    try testing.expectEqual(@as(usize, 10), (try niceware.generatePassphraseAlloc(ally, 20)).len);
+    try testing.expectEqual(@as(usize, 256), (try niceware.generatePassphraseAlloc(ally, 512)).len);
 }
 
 test "errors when generating passphrase with an odd number of bytes" {
