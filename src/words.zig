@@ -1,12 +1,14 @@
+const std = @import("std");
+const math = std.math;
+const mem = std.mem;
+
 /// The longest word in the array.
 pub const max_word_length = computeMaxWordLength();
 
 fn computeMaxWordLength() usize {
-    const maxInt = @import("std").math.maxInt;
-    @setEvalBranchQuota(maxInt(u32));
-
+    @setEvalBranchQuota(math.maxInt(u32));
     var best: usize = 0;
-    for (words) |word| {
+    for (wordlist) |word| {
         if (best < word.len) {
             best = word.len;
         }
@@ -14,7 +16,7 @@ fn computeMaxWordLength() usize {
     return best;
 }
 
-pub const words = [_][]const u8{
+pub const wordlist = [_][]const u8{
     "a",
     "aah",
     "aardvark",

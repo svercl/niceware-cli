@@ -4,8 +4,9 @@ const math = std.math;
 const mem = std.mem;
 const os = std.os;
 const sort = std.sort;
-// NOTE(bms): this is named as such to avoid shadowing
-const words_import = @import("words.zig");
+
+const wordlist = @import("words.zig").wordlist;
+const max_word_length = @import("words.zig").max_word_length;
 
 pub const Error = error{
     // Expected even sized slice, got an odd one
@@ -18,11 +19,8 @@ pub const Error = error{
     SizeTooSmall,
 } || mem.Allocator.Error;
 
-// most recent not found word from [passphraseToBytes].
+// most recent not found word for error reporting
 var word_not_found: ?[]const u8 = null;
-
-const all_words = words_import.words;
-const max_word_length = words_import.max_word_length;
 
 pub const min_password_size = 2;
 pub const max_password_size = 1024;
@@ -32,8 +30,54 @@ pub fn getWordNotFound() ?[]const u8 {
     return word_not_found;
 }
 
+/// Compute the space needed to convert bytes into a passphrase.
+pub fn passphraseSize(bytes: []const u8) !usize {
+    if (bytes.len < min_password_size) {
+        return error.SizeTooSmall;
+    } else if (bytes.len > max_password_size) {
+        return error.SizeTooBig;
+    } else if (bytes.len % 2 != 0) {
+        return error.OddSize;
+    }
+
+    // this cannot error, because we already check if the size is even
+    var size: usize = 0;
+    var i: usize = 0;
+    while (i < bytes.len) : (i += 2) {
+        const word_idx = mem.readInt(
+            u16,
+            &[_]u8{ bytes[i + 0], bytes[i + 1] },
+            .Big,
+        );
+
+        size += wordlist[word_idx].len;
+    }
+
+    return size;
+}
+
+/// Converts a byte array into a passphrase. Use [passphraseSize] to compute an appropriate buffer size.
+pub fn bytesToPassphrase(out: []u8, bytes: []const u8) !void {
+    var writer = std.io.fixedBufferStream(out).writer();
+    var i: usize = 0;
+    while (i < bytes.len) : (i += 2) {
+        const word_idx = mem.readInt(
+            u16,
+            &[_]u8{ bytes[i + 0], bytes[i + 1] },
+            .Big,
+        );
+
+        try writer.writeAll(wordlist[word_idx]);
+
+        // only append a space if we are not at the last iteration
+        if (i != bytes.len - 2) {
+            try writer.writeByte(' ');
+        }
+    }
+}
+
 /// Converts a byte array into a passphrase.
-pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 {
+pub fn bytesToPassphraseAlloc(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 {
     if (bytes.len < min_password_size) {
         return error.SizeTooSmall;
     } else if (bytes.len > max_password_size) {
@@ -42,26 +86,36 @@ pub fn bytesToPassphrase(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 
         return error.OddSize;
     }
 
-    var res = std.ArrayList([]const u8).init(ally);
+    // division is safe, because it's always even
+    var res = try std.ArrayList([]const u8).initCapacity(ally, bytes.len / 2);
     errdefer res.deinit();
 
-    // this cannot error, because we already check if the size is even.
-    var pairs_it = pairs(u8, bytes) catch unreachable;
-    while (pairs_it.next()) |p| {
-        const word_idx = mem.readInt(u16, &p, .Big);
-        std.debug.assert(word_idx < all_words.len);
-        try res.append(all_words[word_idx]);
+    var i: usize = 0;
+    while (i < bytes.len) : (i += 2) {
+        const word_idx = mem.readInt(
+            u16,
+            &[_]u8{ bytes[i + 0], bytes[i + 1] },
+            .Big,
+        );
+
+        res.appendAssumeCapacity(wordlist[word_idx]);
     }
 
     return res.toOwnedSlice();
 }
 
-/// Converts a passphrase back into the original byte array.
-pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: []const []const u8) ![]u8 {
-    var bytes = try std.ArrayList(u8).initCapacity(ally, passphrase.len * 2);
-    errdefer bytes.deinit();
-    var writer = bytes.writer();
+/// Compute the space needed to convert a passphrase into bytes. 
+pub fn bytesSize(passphrase: []const []const u8) usize {
+    return passphrase.len * 2;
+}
 
+/// Converts a passphrase back into the original byte array. Use [bytesSize] to compute an appropriate buffer size.
+pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
+    if (out.len != passphrase.len * 2) {
+        return error.WrongSize;
+    }
+
+    var writer = std.io.fixedBufferStream(out).writer();
     for (passphrase) |word| {
         // checks if the word is longer than any known word
         if (word.len > max_word_length) {
@@ -72,7 +126,7 @@ pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: []const []const u8) !
         const word_idx = sort.binarySearch(
             []const u8,
             word,
-            &all_words,
+            &wordlist,
             {},
             struct {
                 fn compare(context: void, a: []const u8, b: []const u8) math.Order {
@@ -84,61 +138,24 @@ pub fn passphraseToBytes(ally: *mem.Allocator, passphrase: []const []const u8) !
             word_not_found = word;
             return error.WordNotFound;
         };
+
         try writer.writeIntBig(u16, @intCast(u16, word_idx));
     }
+}
 
-    return bytes.toOwnedSlice();
+/// Converts a passphrase back into the original byte array.
+pub fn passphraseToBytesAlloc(ally: *mem.Allocator, passphrase: []const []const u8) ![]u8 {
+    var bytes = try ally.alloc(u8, passphrase.len * 2);
+    errdefer ally.free(bytes);
+    try passphraseToBytes(bytes, passphrase);
+    return bytes;
 }
 
 /// Generates a passphrase with the specified number of bytes.
-// NOTE(bms): u11 is used here because u10 only goes up to 1023, but we need 1024.
-pub fn generatePassphrase(ally: *mem.Allocator, size: u11) ![][]const u8 {
+pub fn generatePassphraseAlloc(ally: *mem.Allocator, size: u11) ![][]const u8 {
     // fills an array of bytes using system random (normally, this is cryptographically secure)
     var random_bytes = try ally.alloc(u8, size);
     errdefer ally.free(random_bytes);
     try os.getrandom(random_bytes);
-    return bytesToPassphrase(ally, random_bytes);
-}
-
-/// Returns an iterator over a slice [buf] in pairs of two.
-fn pairs(comptime T: type, buf: []const T) !PairIterator(T) {
-    if (buf.len % 2 != 0) return error.OddSize;
-    return PairIterator(T).init(buf);
-}
-
-/// An iterator over pairs from a slice.
-fn PairIterator(comptime T: type) type {
-    return struct {
-        buf: []const T,
-        index: usize,
-
-        const Self = @This();
-
-        /// Creates a new [PairIterator] from a [buf].
-        pub fn init(buf: []const T) Self {
-            return .{
-                .buf = buf,
-                .index = 0,
-            };
-        }
-
-        /// Resets the iterator to the beginning.
-        pub fn reset(self: *Self) void {
-            self.index = 0;
-        }
-
-        /// Returns the next pair or null when at the end of the slice.
-        pub fn next(self: *Self) ?[2]T {
-            if (self.index >= self.buf.len or self.index + 1 >= self.buf.len) {
-                return null;
-            } else {
-                const p = [_]T{
-                    self.buf[self.index + 0], // note(bms): adding zero for visual aid only
-                    self.buf[self.index + 1],
-                };
-                self.index += 2;
-                return p;
-            }
-        }
-    };
+    return bytesToPassphraseAlloc(ally, random_bytes);
 }
