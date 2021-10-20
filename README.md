@@ -1,6 +1,9 @@
 # niceware
 
-A Zig port of [niceware](https://github.com/diracdeltas/niceware) with a CLI interface.
+A command line tool for generating secure and memorable passwords.
+
+
+This is a Zig port of [niceware](https://github.com/diracdeltas/niceware) with a CLI interface.
 
 See original project README for more information.
 
