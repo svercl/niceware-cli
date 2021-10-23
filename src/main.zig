@@ -7,6 +7,7 @@ const log = std.log;
 const mem = std.mem;
 const process = std.process;
 const niceware = @import("niceware.zig");
+const util = @import("util.zig");
 
 const usage =
     \\Usage: niceware <command> [argument]
@@ -54,28 +55,9 @@ const usage_generate =
     \\
 ;
 
-// Determines if [what] is help, -h or --help.
+/// Determines if [what] is help, -h or --help.
 fn isHelp(what: []const u8) bool {
     return mem.eql(u8, what, "help") or mem.eql(u8, what, "-h") or mem.eql(u8, what, "--help");
-}
-
-// Determines if the string contains only digits (base 10).
-fn isStringNumeric(s: []const u8) bool {
-    for (s) |c| {
-        // if any character is a non-digit, then it's not all digits
-        if (!ascii.isDigit(c)) return false;
-    }
-    return true;
-}
-
-test "isStringNumeric" {
-    std.testing.expect(isStringNumeric("123"));
-    std.testing.expect(isStringNumeric("0123"));
-}
-
-test "!isStringNumeric" {
-    std.testing.expect(isStringNumeric("+123"));
-    std.testing.expect(isStringNumeric("numeric"));
 }
 
 fn generate(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
@@ -91,7 +73,7 @@ fn generate(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
         const cmd = args[0];
         if (isHelp(cmd)) {
             try writer.writeAll(usage_generate);
-        } else if (isStringNumeric(cmd)) {
+        } else if (util.isStringNumeric(cmd)) {
             if (fmt.parseUnsigned(u11, cmd, 0)) |size| {
                 if (niceware.generatePassphraseAlloc(ally, size)) |passphrase| {
                     // first line is the bytes
