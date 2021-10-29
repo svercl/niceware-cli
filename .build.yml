@@ -1,0 +1,12 @@
+image: archlinux
+packages:
+- zig
+sources:
+- git@git.sr.ht:~cx-u/niceware-cli
+tasks:
+- build: |
+    cd niceware-cli
+    zig build
+- test: |
+    cd niceware-cli
+    zig build test
