@@ -77,7 +77,7 @@ pub fn bytesToPassphrase(out: []u8, bytes: []const u8) !void {
 }
 
 /// Converts a byte array into a passphrase.
-pub fn bytesToPassphraseAlloc(ally: *mem.Allocator, bytes: []const u8) ![][]const u8 {
+pub fn bytesToPassphraseAlloc(ally: mem.Allocator, bytes: []const u8) ![][]const u8 {
     if (bytes.len < min_password_size) {
         return error.SizeTooSmall;
     } else if (bytes.len > max_password_size) {
@@ -144,7 +144,7 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
 }
 
 /// Converts a passphrase back into the original byte array.
-pub fn passphraseToBytesAlloc(ally: *mem.Allocator, passphrase: []const []const u8) ![]u8 {
+pub fn passphraseToBytesAlloc(ally: mem.Allocator, passphrase: []const []const u8) ![]u8 {
     var bytes = try ally.alloc(u8, passphrase.len * 2);
     errdefer ally.free(bytes);
     try passphraseToBytes(bytes, passphrase);
@@ -152,7 +152,7 @@ pub fn passphraseToBytesAlloc(ally: *mem.Allocator, passphrase: []const []const 
 }
 
 /// Generates a passphrase with the specified number of bytes.
-pub fn generatePassphraseAlloc(ally: *mem.Allocator, size: u11) ![][]const u8 {
+pub fn generatePassphraseAlloc(ally: mem.Allocator, size: u11) ![][]const u8 {
     // fills an array of bytes using system random (normally, this is cryptographically secure)
     var random_bytes = try ally.alloc(u8, size);
     errdefer ally.free(random_bytes);

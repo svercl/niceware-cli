@@ -78,7 +78,7 @@ test "!isStringNumeric" {
     std.testing.expect(isStringNumeric("numeric"));
 }
 
-fn generate(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
+fn generate(ally: mem.Allocator, writer: anytype, args: [][]const u8) !void {
     if (args.len == 0) {
         const passphrase = try niceware.generatePassphraseAlloc(ally, 8);
         // first line is the bytes
@@ -123,7 +123,7 @@ fn generate(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
     }
 }
 
-fn toBytes(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
+fn toBytes(ally: mem.Allocator, writer: anytype, args: [][]const u8) !void {
     if (args.len >= 1) {
         const cmd = args[0];
         if (isHelp(cmd)) {
@@ -147,7 +147,7 @@ fn toBytes(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
     }
 }
 
-fn fromBytes(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
+fn fromBytes(ally: mem.Allocator, writer: anytype, args: [][]const u8) !void {
     if (args.len == 1) {
         const cmd = args[0];
         if (isHelp(cmd)) {
@@ -184,7 +184,7 @@ fn fromBytes(ally: *mem.Allocator, writer: anytype, args: [][]const u8) !void {
 pub fn main() anyerror!void {
     var arena = heap.ArenaAllocator.init(heap.page_allocator);
     defer arena.deinit();
-    const ally = &arena.allocator;
+    const ally = arena.allocator();
 
     const stdout = io.getStdOut().writer();
 
