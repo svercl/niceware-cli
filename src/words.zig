@@ -5065,7 +5065,7 @@ pub const wordlist = [_][]const u8{
     "blowier",
     "blowiest",
     "blowing",
-    "blowjob",
+    "blowlamp",
     "blown",
     "blowoff",
     "blowout",
