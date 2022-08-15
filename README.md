@@ -9,7 +9,7 @@ See original project README for more information.
 
 ## Requirements
 
-- Zig 0.8.1
+- Zig 0.9.1
 
 ## Building
 
