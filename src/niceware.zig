@@ -104,7 +104,7 @@ pub fn bytesToPassphraseAlloc(ally: mem.Allocator, bytes: []const u8) ![][]const
     return res.toOwnedSlice();
 }
 
-/// Compute the space needed to convert a passphrase into bytes. 
+/// Compute the space needed to convert a passphrase into bytes.
 pub fn bytesSize(passphrase: []const []const u8) usize {
     return passphrase.len * 2;
 }
@@ -129,8 +129,7 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
             &wordlist,
             {},
             struct {
-                fn compare(context: void, a: []const u8, b: []const u8) math.Order {
-                    _ = context;
+                fn compare(_: void, a: []const u8, b: []const u8) math.Order {
                     return ascii.orderIgnoreCase(a, b);
                 }
             }.compare,
