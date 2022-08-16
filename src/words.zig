@@ -2,17 +2,20 @@ const std = @import("std");
 const math = std.math;
 const mem = std.mem;
 
+pub const Word = [:0]const u8;
+
 /// The longest word in the array.
 pub const max_word_length = blk: {
+    // Need a larger branch quota because this is found at comptime
     @setEvalBranchQuota(math.maxInt(u32));
-    break :blk if (std.sort.max([:0]const u8, &wordlist, {}, struct {
-        fn lessThan(_: void, a: [:0]const u8, b: [:0]const u8) bool {
+    break :blk if (std.sort.max(Word, &wordlist, {}, struct {
+        fn lessThan(_: void, a: Word, b: Word) bool {
             return a.len < b.len;
         }
     }.lessThan)) |word| word.len else 0;
 };
 
-pub const wordlist = [_][:0]const u8{
+pub const wordlist = [_]Word{
     "a",
     "aah",
     "aardvark",
