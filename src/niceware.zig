@@ -5,8 +5,9 @@ const mem = std.mem;
 const os = std.os;
 const sort = std.sort;
 
-const wordlist = @import("words.zig").wordlist;
-const max_word_length = @import("words.zig").max_word_length;
+const words = @import("words.zig");
+const wordlist = words.wordlist;
+const max_word_length = words.max_word_length;
 
 pub const Error = error{
     // Expected even sized slice, got an odd one
@@ -44,11 +45,7 @@ pub fn passphraseSize(bytes: []const u8) !usize {
     var size: usize = 0;
     var i: usize = 0;
     while (i < bytes.len) : (i += 2) {
-        const word_idx = mem.readInt(
-            u16,
-            &[_]u8{ bytes[i + 0], bytes[i + 1] },
-            .Big,
-        );
+        const word_idx = mem.readInt(u16, &[_]u8{ bytes[i + 0], bytes[i + 1] }, .Big);
 
         size += wordlist[word_idx].len;
     }
@@ -60,13 +57,10 @@ pub fn passphraseSize(bytes: []const u8) !usize {
 pub fn bytesToPassphrase(out: []u8, bytes: []const u8) !void {
     var fbs = std.io.fixedBufferStream(out);
     const writer = fbs.writer();
+
     var i: usize = 0;
     while (i < bytes.len) : (i += 2) {
-        const word_idx = mem.readInt(
-            u16,
-            &[_]u8{ bytes[i + 0], bytes[i + 1] },
-            .Big,
-        );
+        const word_idx = mem.readInt(u16, &[_]u8{ bytes[i + 0], bytes[i + 1] }, .Big);
 
         try writer.writeAll(wordlist[word_idx]);
 
@@ -93,11 +87,7 @@ pub fn bytesToPassphraseAlloc(ally: mem.Allocator, bytes: []const u8) ![][]const
 
     var i: usize = 0;
     while (i < bytes.len) : (i += 2) {
-        const word_idx = mem.readInt(
-            u16,
-            &[_]u8{ bytes[i + 0], bytes[i + 1] },
-            .Big,
-        );
+        const word_idx = mem.readInt(u16, &[_]u8{ bytes[i + 0], bytes[i + 1] }, .Big);
 
         res.appendAssumeCapacity(wordlist[word_idx]);
     }
@@ -118,6 +108,7 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
 
     var fbs = std.io.fixedBufferStream(out);
     const writer = fbs.writer();
+
     for (passphrase) |word| {
         // checks if the word is longer than any known word
         if (word.len > max_word_length) {
@@ -125,17 +116,11 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
             return error.WordNotFound;
         }
 
-        const word_idx = sort.binarySearch(
-            []const u8,
-            word,
-            &wordlist,
-            {},
-            struct {
-                fn compare(_: void, a: []const u8, b: []const u8) math.Order {
-                    return ascii.orderIgnoreCase(a, b);
-                }
-            }.compare,
-        ) orelse {
+        const word_idx = sort.binarySearch([]const u8, word, &wordlist, {}, struct {
+            fn compare(_: void, a: []const u8, b: []const u8) math.Order {
+                return ascii.orderIgnoreCase(a, b);
+            }
+        }.compare) orelse {
             word_not_found = word;
             return error.WordNotFound;
         };
