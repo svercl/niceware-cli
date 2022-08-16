@@ -3,20 +3,16 @@ const math = std.math;
 const mem = std.mem;
 
 /// The longest word in the array.
-pub const max_word_length = computeMaxWordLength();
-
-fn computeMaxWordLength() usize {
+pub const max_word_length = blk: {
     @setEvalBranchQuota(math.maxInt(u32));
-    var best: usize = 0;
-    for (wordlist) |word| {
-        if (best < word.len) {
-            best = word.len;
+    break :blk if (std.sort.max([:0]const u8, &wordlist, {}, struct {
+        fn lessThan(_: void, a: [:0]const u8, b: [:0]const u8) bool {
+            return a.len < b.len;
         }
-    }
-    return best;
-}
+    }.lessThan)) |word| word.len else 0;
+};
 
-pub const wordlist = [_][]const u8{
+pub const wordlist = [_][:0]const u8{
     "a",
     "aah",
     "aardvark",
