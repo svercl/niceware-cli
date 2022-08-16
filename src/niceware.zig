@@ -58,7 +58,8 @@ pub fn passphraseSize(bytes: []const u8) !usize {
 
 /// Converts a byte array into a passphrase. Use [passphraseSize] to compute an appropriate buffer size.
 pub fn bytesToPassphrase(out: []u8, bytes: []const u8) !void {
-    var writer = std.io.fixedBufferStream(out).writer();
+    var fbs = std.io.fixedBufferStream(out);
+    const writer = fbs.writer();
     var i: usize = 0;
     while (i < bytes.len) : (i += 2) {
         const word_idx = mem.readInt(
@@ -115,7 +116,8 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
         return error.WrongSize;
     }
 
-    var writer = std.io.fixedBufferStream(out).writer();
+    var fbs = std.io.fixedBufferStream(out);
+    const writer = fbs.writer();
     for (passphrase) |word| {
         // checks if the word is longer than any known word
         if (word.len > max_word_length) {
