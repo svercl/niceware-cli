@@ -69,13 +69,13 @@ fn isStringNumeric(s: []const u8) bool {
 }
 
 test "isStringNumeric" {
-    std.testing.expect(isStringNumeric("123"));
-    std.testing.expect(isStringNumeric("0123"));
+    try std.testing.expect(isStringNumeric("123"));
+    try std.testing.expect(isStringNumeric("0123"));
 }
 
 test "!isStringNumeric" {
-    std.testing.expect(isStringNumeric("+123"));
-    std.testing.expect(isStringNumeric("numeric"));
+    try std.testing.expect(!isStringNumeric("+123"));
+    try std.testing.expect(!isStringNumeric("numeric"));
 }
 
 fn generate(ally: mem.Allocator, writer: anytype, args: [][]const u8) !void {
