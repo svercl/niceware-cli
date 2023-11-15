@@ -87,7 +87,7 @@ pub fn bytesToPassphraseAlloc(ally: mem.Allocator, bytes: []const u8) ![][]const
 
     var i: usize = 0;
     while (i < bytes.len) : (i += 2) {
-        const word_idx = mem.readInt(u16, &[_]u8{ bytes[i + 0], bytes[i + 1] }, .Big);
+        const word_idx = mem.readInt(u16, &[_]u8{ bytes[i + 0], bytes[i + 1] }, .big);
 
         res.appendAssumeCapacity(wordlist[word_idx]);
     }
@@ -125,7 +125,7 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
             return error.WordNotFound;
         };
 
-        try writer.writeIntBig(u16, @intCast(u16, word_idx));
+        try writer.writeInt(u16, @intCast(word_idx), .big);
     }
 }
 

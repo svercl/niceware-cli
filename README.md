@@ -9,7 +9,7 @@ See original project README for more information.
 
 ## Requirements
 
-- Zig v0.11.0-dev.2609+5e19250a1+
+- Zig 0.12.0-dev.1606+569182dbb (or compatible)
 
 ## Building
 
