@@ -131,7 +131,7 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
 
 /// Converts a passphrase back into the original byte array.
 pub fn passphraseToBytesAlloc(ally: mem.Allocator, passphrase: []const []const u8) ![]u8 {
-    var bytes = try ally.alloc(u8, passphrase.len * 2);
+    const bytes = try ally.alloc(u8, passphrase.len * 2);
     errdefer ally.free(bytes);
     try passphraseToBytes(bytes, passphrase);
     return bytes;
@@ -140,7 +140,7 @@ pub fn passphraseToBytesAlloc(ally: mem.Allocator, passphrase: []const []const u
 /// Generates a passphrase with the specified number of bytes.
 pub fn generatePassphraseAlloc(ally: mem.Allocator, size: u11) ![][]const u8 {
     // fills an array of bytes using system random (normally, this is cryptographically secure)
-    var random_bytes = try ally.alloc(u8, size);
+    const random_bytes = try ally.alloc(u8, size);
     errdefer ally.free(random_bytes);
     try os.getrandom(random_bytes);
     return bytesToPassphraseAlloc(ally, random_bytes);

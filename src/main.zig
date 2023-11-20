@@ -159,7 +159,7 @@ fn fromBytes(ally: mem.Allocator, writer: anytype, args: [][]const u8) !void {
             } else if (size % 2 != 0) {
                 log.err("input must be an even length, {} is not an even number", .{size});
             } else {
-                var buf = try ally.alloc(u8, size / 2);
+                const buf = try ally.alloc(u8, size / 2);
                 if (fmt.hexToBytes(buf, cmd)) |bytes| {
                     if (niceware.bytesToPassphraseAlloc(ally, bytes)) |passphrase| {
                         const joined = try mem.join(ally, " ", passphrase);
