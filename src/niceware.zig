@@ -1,9 +1,4 @@
 const std = @import("std");
-const ascii = std.ascii;
-const math = std.math;
-const mem = std.mem;
-const os = std.os;
-const sort = std.sort;
 
 const words = @import("words.zig");
 const wordlist = words.wordlist;
@@ -18,7 +13,7 @@ pub const Error = error{
     SizeTooLarge,
     // Size is smaller than minimum allowed
     SizeTooSmall,
-} || mem.Allocator.Error;
+} || std.mem.Allocator.Error;
 
 // most recent not found word for error reporting
 var word_not_found: ?[]const u8 = null;
@@ -45,7 +40,10 @@ pub fn passphraseSize(bytes: []const u8) !usize {
     var size: usize = 0;
     var i: usize = 0;
     while (i < bytes.len) : (i += 2) {
-        const word_idx = mem.readInt(u16, &[_]u8{ bytes[i + 0], bytes[i + 1] }, .Big);
+        const word_idx = std.mem.readInt(u16, &.{
+            bytes[i + 0],
+            bytes[i + 1],
+        }, .Big);
 
         size += wordlist[word_idx].len;
     }
@@ -53,14 +51,18 @@ pub fn passphraseSize(bytes: []const u8) !usize {
     return size;
 }
 
-/// Converts a byte array into a passphrase. Use [passphraseSize] to compute an appropriate buffer size.
+/// Converts a byte array into a passphrase. Use [passphraseSize] to compute an
+/// appropriate buffer size.
 pub fn bytesToPassphrase(out: []u8, bytes: []const u8) !void {
     var fbs = std.io.fixedBufferStream(out);
     const writer = fbs.writer();
 
     var i: usize = 0;
     while (i < bytes.len) : (i += 2) {
-        const word_idx = mem.readInt(u16, &[_]u8{ bytes[i + 0], bytes[i + 1] }, .Big);
+        const word_idx = std.mem.readInt(u16, &.{
+            bytes[i + 0],
+            bytes[i + 1],
+        }, .Big);
 
         try writer.writeAll(wordlist[word_idx]);
 
@@ -72,7 +74,10 @@ pub fn bytesToPassphrase(out: []u8, bytes: []const u8) !void {
 }
 
 /// Converts a byte array into a passphrase.
-pub fn bytesToPassphraseAlloc(ally: mem.Allocator, bytes: []const u8) ![][]const u8 {
+pub fn bytesToPassphraseAlloc(
+    allocator: std.mem.Allocator,
+    bytes: []const u8,
+) ![][]const u8 {
     if (bytes.len < min_password_size) {
         return error.SizeTooSmall;
     } else if (bytes.len > max_password_size) {
@@ -82,12 +87,18 @@ pub fn bytesToPassphraseAlloc(ally: mem.Allocator, bytes: []const u8) ![][]const
     }
 
     // division is safe, because it's always even
-    var res = try std.ArrayList([]const u8).initCapacity(ally, bytes.len / 2);
+    var res = try std.ArrayList([]const u8).initCapacity(
+        allocator,
+        bytes.len / 2,
+    );
     errdefer res.deinit();
 
     var i: usize = 0;
     while (i < bytes.len) : (i += 2) {
-        const word_idx = mem.readInt(u16, &[_]u8{ bytes[i + 0], bytes[i + 1] }, .big);
+        const word_idx = std.mem.readInt(u16, &[_]u8{
+            bytes[i + 0],
+            bytes[i + 1],
+        }, .big);
 
         res.appendAssumeCapacity(wordlist[word_idx]);
     }
@@ -100,7 +111,8 @@ pub fn bytesSize(passphrase: []const []const u8) usize {
     return passphrase.len * 2;
 }
 
-/// Converts a passphrase back into the original byte array. Use [bytesSize] to compute an appropriate buffer size.
+/// Converts a passphrase back into the original byte array. Use [bytesSize] to
+/// compute an appropriate buffer size.
 pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
     if (out.len != passphrase.len * 2) {
         return error.WrongSize;
@@ -116,9 +128,9 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
             return error.WordNotFound;
         }
 
-        const word_idx = sort.binarySearch([]const u8, word, &wordlist, {}, struct {
-            fn compare(_: void, a: []const u8, b: []const u8) math.Order {
-                return ascii.orderIgnoreCase(a, b);
+        const word_idx = std.sort.binarySearch([]const u8, word, &wordlist, {}, struct {
+            fn compare(_: void, a: []const u8, b: []const u8) std.math.Order {
+                return std.ascii.orderIgnoreCase(a, b);
             }
         }.compare) orelse {
             word_not_found = word;
@@ -130,7 +142,10 @@ pub fn passphraseToBytes(out: []u8, passphrase: []const []const u8) !void {
 }
 
 /// Converts a passphrase back into the original byte array.
-pub fn passphraseToBytesAlloc(ally: mem.Allocator, passphrase: []const []const u8) ![]u8 {
+pub fn passphraseToBytesAlloc(
+    ally: std.mem.Allocator,
+    passphrase: []const []const u8,
+) ![]u8 {
     const bytes = try ally.alloc(u8, passphrase.len * 2);
     errdefer ally.free(bytes);
     try passphraseToBytes(bytes, passphrase);
@@ -138,10 +153,12 @@ pub fn passphraseToBytesAlloc(ally: mem.Allocator, passphrase: []const []const u
 }
 
 /// Generates a passphrase with the specified number of bytes.
-pub fn generatePassphraseAlloc(ally: mem.Allocator, size: u11) ![][]const u8 {
-    // fills an array of bytes using system random (normally, this is cryptographically secure)
+pub fn generatePassphraseAlloc(
+    ally: std.mem.Allocator,
+    size: u11,
+) ![][]const u8 {
     const random_bytes = try ally.alloc(u8, size);
     errdefer ally.free(random_bytes);
-    try os.getrandom(random_bytes);
+    try std.posix.getrandom(random_bytes);
     return bytesToPassphraseAlloc(ally, random_bytes);
 }

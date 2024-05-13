@@ -9,11 +9,11 @@ See original project README for more information.
 
 ## Requirements
 
-- Zig 0.12.0-dev.1606+569182dbb (or compatible)
+- Zig 0.12.0
 
 ## Building
 
-`zig build -Drelease-safe`
+`zig build -Doptimize=ReleaseSafe`
 
 ## Running the tests
 
@@ -41,7 +41,7 @@ Converts the passphrase into its bytes representation.
 
 ## Credits
 
-This wouldn't be possible without the [original](https://github.com/diracdeltas/niceware). 
+This wouldn't be possible without the [original](https://github.com/diracdeltas/niceware).
 
 Huge shoutout to healeycodes for the [Rust port](https://github.com/healeycodes/niceware).
 The core library used here is a direct port of it.
